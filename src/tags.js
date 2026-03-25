@@ -1,11 +1,11 @@
 const semver = require('semver')
 const { cmd, niceDate } = require('./utils')
 
-const DIVIDER = '---'
+const DIVIDER = '---divider---'
 const MATCH_V = /^v\d/
 
 const fetchTags = async (options, remote) => {
-  const format = `%(refname:short)${DIVIDER}%(creatordate:short)`
+  const format = `%(refname:short)${DIVIDER}%(creatordate:short)${DIVIDER}%(objectname)${DIVIDER}%(*objectname)`
   const tags = (await cmd(`git tag -l --format=${format} ${options.appendGitTag}`))
     .trim()
     .split('\n')
@@ -63,12 +63,14 @@ const getEndIndex = (tags, { unreleasedOnly, startingVersion, startingDate, tagP
 }
 
 const parseTag = ({ tagPrefix }) => string => {
-  const [tag, date] = string.split(DIVIDER)
+  const [tag, date, hash, derefHash] = string.split(DIVIDER)
   return {
     tag,
     date,
     title: tag,
-    version: inferSemver(tag.replace(tagPrefix, ''))
+    version: inferSemver(tag.replace(tagPrefix, '')),
+    // For annotated tags, *objectname is the commit; for lightweight tags, objectname is the commit
+    hash: (derefHash || hash || '').trim()
   }
 }
 

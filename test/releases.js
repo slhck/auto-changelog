@@ -10,23 +10,26 @@ const {
 
 describe('parseReleases', () => {
   afterEach(() => {
-    unmock('fetchCommits')
+    unmock('fetchAllCommits')
   })
 
   it('parses releases', async () => {
-    const map = {
-      'v1.0.0..v2.0.0': generateCommits([
-        'Merge pull request #4 from branch\n\nSixth commit',
-        'Fifth commit\nFixes #3',
-        'Fourth commit'
-      ]),
-      'v1.0.0': generateCommits([
-        'Merge pull request #2 from branch\n\nThird commit',
-        'Second commit\nFixes #1',
-        'First commit'
-      ])
-    }
-    mock('fetchCommits', diff => Promise.resolve(map[diff]))
+    const v2commits = generateCommits([
+      'Merge pull request #4 from branch\n\nSixth commit',
+      'Fifth commit\nFixes #3',
+      'Fourth commit'
+    ], {}, undefined, {
+      hashes: ['hash_v2_1', 'hash_v2_2', 'hash_v2_3']
+    })
+    const v1commits = generateCommits([
+      'Merge pull request #2 from branch\n\nThird commit',
+      'Second commit\nFixes #1',
+      'First commit'
+    ], {}, undefined, {
+      hashes: ['hash_v1_1', 'hash_v1_2', 'hash_v1_3']
+    })
+    // allCommits: newest first (v2 commits then v1 commits)
+    mock('fetchAllCommits', () => Promise.resolve([...v2commits, ...v1commits]))
     const options = {
       commitLimit: 3,
       backfillLimit: 3,
@@ -40,14 +43,16 @@ describe('parseReleases', () => {
         date: '2000-01-01',
         diff: 'v1.0.0..v2.0.0',
         major: true,
-        href: 'https://github.com/user/repo/compare/v1.0.0...v2.0.0'
+        href: 'https://github.com/user/repo/compare/v1.0.0...v2.0.0',
+        hash: 'hash_v2_1'
       },
       {
         tag: 'v1.0.0',
         date: '2000-01-01',
         diff: 'v1.0.0',
         major: false,
-        href: null
+        href: null,
+        hash: 'hash_v1_1'
       }
     ]
     const releases = await parseReleases(tags, options)
@@ -69,62 +74,59 @@ describe('parseReleases', () => {
   })
 
   it('applies commitLimit', async () => {
-    const map = {
-      'v1.0.0': generateCommits(['Second commit', 'First commit\nFixes #1'])
-    }
-    mock('fetchCommits', diff => Promise.resolve(map[diff]))
+    const commits = generateCommits(['Second commit', 'First commit\nFixes #1'], {}, undefined, {
+      hashes: ['hash1', 'hash2']
+    })
+    mock('fetchAllCommits', () => Promise.resolve(commits))
     const options = { commitLimit: 1 }
-    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0' }]
+    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0', hash: 'hash1' }]
     const releases = await parseReleases(tags, options)
     expect(releases[0].commits).to.have.lengthOf(1)
     expect(releases[0].commits[0]).to.include({ subject: 'Second commit' })
   })
 
   it('false commitLimit', async () => {
-    const map = {
-      'v1.0.0': generateCommits(['Fourth commit', 'Third commit', 'Second commit', 'First commit'])
-    }
-    mock('fetchCommits', diff => Promise.resolve(map[diff]))
+    const commits = generateCommits(['Fourth commit', 'Third commit', 'Second commit', 'First commit'], {}, undefined, {
+      hashes: ['hash1', 'hash2', 'hash3', 'hash4']
+    })
+    mock('fetchAllCommits', () => Promise.resolve(commits))
     const options = { commitLimit: false }
-    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0' }]
+    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0', hash: 'hash1' }]
     const releases = await parseReleases(tags, options)
     expect(releases[0].commits).to.have.lengthOf(4)
   })
 
   it('applies backfillLimit', async () => {
-    const map = {
-      'v1.0.0': generateCommits(['Second commit', 'First commit'])
-    }
-    mock('fetchCommits', diff => Promise.resolve(map[diff]))
+    const commits = generateCommits(['Second commit', 'First commit'], {}, undefined, {
+      hashes: ['hash1', 'hash2']
+    })
+    mock('fetchAllCommits', () => Promise.resolve(commits))
     const options = { backfillLimit: 1 }
-    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0' }]
+    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0', hash: 'hash1' }]
     const releases = await parseReleases(tags, options)
     expect(releases[0].commits).to.have.lengthOf(1)
     expect(releases[0].commits[0]).to.include({ subject: 'Second commit' })
   })
 
   it('includes breaking commits', async () => {
-    const map = {
-      'v1.0.0': generateCommits([
-        { message: 'Second commit' },
-        { message: 'First commit', breaking: true }
-      ])
-    }
-    mock('fetchCommits', diff => Promise.resolve(map[diff]))
+    const commits = generateCommits([
+      { message: 'Second commit' },
+      { message: 'First commit', breaking: true }
+    ], {}, undefined, {
+      hashes: ['hash1', 'hash2']
+    })
+    mock('fetchAllCommits', () => Promise.resolve(commits))
     const options = { commitLimit: 0, backfillLimit: 0 }
-    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0' }]
+    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0', hash: 'hash1' }]
     const releases = await parseReleases(tags, options)
     expect(releases[0].commits).to.have.lengthOf(1)
     expect(releases[0].commits[0]).to.include({ subject: 'First commit' })
   })
 
   it('hides empty releases', async () => {
-    const map = {
-      'v1.0.0': []
-    }
-    mock('fetchCommits', diff => Promise.resolve(map[diff]))
+    mock('fetchAllCommits', () => Promise.resolve([]))
     const options = { hideEmptyReleases: true }
-    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0' }]
+    const tags = [{ tag: 'v1.0.0', date: '2000-01-01', diff: 'v1.0.0', hash: 'hash1' }]
     const releases = await parseReleases(tags, options)
     expect(releases).to.have.lengthOf(0)
   })

@@ -15,12 +15,12 @@ const options = {
 describe('fetchTags', () => {
   beforeEach(() => {
     mock('cmd', () => Promise.resolve([
-      'v0.1.0---2000-02-01',
-      'v0.2.0---2000-03-01',
-      'v0.2.1---2000-03-02',
-      'v0.2.2---2000-03-03',
-      'v0.3.0---2000-04-01',
-      'v1.0.0---2001-01-01'
+      'v0.1.0---divider---2000-02-01---divider---aaa001---divider---',
+      'v0.2.0---divider---2000-03-01---divider---aaa002---divider---',
+      'v0.2.1---divider---2000-03-02---divider---aaa003---divider---',
+      'v0.2.2---divider---2000-03-03---divider---aaa004---divider---',
+      'v0.3.0---divider---2000-04-01---divider---aaa005---divider---',
+      'v1.0.0---divider---2001-01-01---divider---aaa006---divider---'
     ].join('\n')))
   })
 
@@ -29,7 +29,8 @@ describe('fetchTags', () => {
   })
 
   it('fetches tags', async () => {
-    expect(await fetchTags(options)).to.deep.equal([{
+    const tags = await fetchTags(options)
+    expect(tags).to.deep.equal([{
       tag: 'v1.0.0',
       version: 'v1.0.0',
       title: 'v1.0.0',
@@ -39,7 +40,8 @@ describe('fetchTags', () => {
       diff: 'v0.3.0..v1.0.0',
       href: 'https://github.com/user/repo/compare/v0.3.0...v1.0.0',
       major: true,
-      minor: false
+      minor: false,
+      hash: 'aaa006'
     },
     {
       tag: 'v0.3.0',
@@ -51,7 +53,8 @@ describe('fetchTags', () => {
       diff: 'v0.2.2..v0.3.0',
       href: 'https://github.com/user/repo/compare/v0.2.2...v0.3.0',
       major: false,
-      minor: true
+      minor: true,
+      hash: 'aaa005'
     },
     {
       tag: 'v0.2.2',
@@ -63,7 +66,8 @@ describe('fetchTags', () => {
       diff: 'v0.2.1..v0.2.2',
       href: 'https://github.com/user/repo/compare/v0.2.1...v0.2.2',
       major: false,
-      minor: false
+      minor: false,
+      hash: 'aaa004'
     },
     {
       tag: 'v0.2.1',
@@ -75,7 +79,8 @@ describe('fetchTags', () => {
       diff: 'v0.2.0..v0.2.1',
       href: 'https://github.com/user/repo/compare/v0.2.0...v0.2.1',
       major: false,
-      minor: false
+      minor: false,
+      hash: 'aaa003'
     },
     {
       tag: 'v0.2.0',
@@ -87,7 +92,8 @@ describe('fetchTags', () => {
       diff: 'v0.1.0..v0.2.0',
       href: 'https://github.com/user/repo/compare/v0.1.0...v0.2.0',
       major: false,
-      minor: true
+      minor: true,
+      hash: 'aaa002'
     },
     {
       tag: 'v0.1.0',
@@ -99,7 +105,8 @@ describe('fetchTags', () => {
       diff: 'v0.1.0',
       href: null,
       major: false,
-      minor: false
+      minor: false,
+      hash: 'aaa001'
     }])
   })
 
@@ -126,12 +133,12 @@ describe('fetchTags', () => {
 
   it('sorts tags using semver', async () => {
     mock('cmd', () => Promise.resolve([
-      '0.1.0---2000-02-01',
-      '0.2.0---2000-03-01',
-      '0.3.0---2000-04-01',
-      '0.2.1---2000-03-02',
-      '0.2.2---2000-03-03',
-      '1.0.0---2001-01-01'
+      '0.1.0---divider---2000-02-01---divider---bbb001---divider---',
+      '0.2.0---divider---2000-03-01---divider---bbb002---divider---',
+      '0.3.0---divider---2000-04-01---divider---bbb003---divider---',
+      '0.2.1---divider---2000-03-02---divider---bbb004---divider---',
+      '0.2.2---divider---2000-03-03---divider---bbb005---divider---',
+      '1.0.0---divider---2001-01-01---divider---bbb006---divider---'
     ].join('\n')))
     const tags = await fetchTags(options)
     expect(tags.map(t => t.title)).to.deep.equal([
@@ -146,12 +153,12 @@ describe('fetchTags', () => {
 
   it('does not sort when sorting via --append-git-tag', async () => {
     mock('cmd', () => Promise.resolve([
-      '0.1.0---2000-02-01',
-      '0.2.0---2000-03-01',
-      '0.3.0---2000-04-01',
-      '0.2.1---2000-03-02',
-      '0.2.2---2000-03-03',
-      '1.0.0---2001-01-01'
+      '0.1.0---divider---2000-02-01---divider---ccc001---divider---',
+      '0.2.0---divider---2000-03-01---divider---ccc002---divider---',
+      '0.3.0---divider---2000-04-01---divider---ccc003---divider---',
+      '0.2.1---divider---2000-03-02---divider---ccc004---divider---',
+      '0.2.2---divider---2000-03-03---divider---ccc005---divider---',
+      '1.0.0---divider---2001-01-01---divider---ccc006---divider---'
     ].join('\n')))
     const tags = await fetchTags({ ...options, appendGitTag: '--sort=v:refname' })
     expect(tags.map(t => t.title)).to.deep.equal([
@@ -166,12 +173,12 @@ describe('fetchTags', () => {
 
   it('supports partial semver tags', async () => {
     mock('cmd', () => Promise.resolve([
-      'v0.1---2000-02-01',
-      'v0.2---2000-03-01',
-      'v0.2.1---2000-03-02',
-      'v0.2.2---2000-03-03',
-      'v0.3---2000-04-01',
-      'v1---2001-01-01'
+      'v0.1---divider---2000-02-01---divider---ddd001---divider---',
+      'v0.2---divider---2000-03-01---divider---ddd002---divider---',
+      'v0.2.1---divider---2000-03-02---divider---ddd003---divider---',
+      'v0.2.2---divider---2000-03-03---divider---ddd004---divider---',
+      'v0.3---divider---2000-04-01---divider---ddd005---divider---',
+      'v1---divider---2001-01-01---divider---ddd006---divider---'
     ].join('\n')))
     const tags = await fetchTags(options)
     expect(tags.map(t => t.version)).to.deep.equal([
@@ -186,12 +193,12 @@ describe('fetchTags', () => {
 
   it('supports --latest-version without v prefix', async () => {
     mock('cmd', () => Promise.resolve([
-      '0.1.0---2000-02-01',
-      '0.2.0---2000-03-01',
-      '0.2.1---2000-03-02',
-      '0.2.2---2000-03-03',
-      '0.3.0---2000-04-01',
-      '1.0.0---2001-01-01'
+      '0.1.0---divider---2000-02-01---divider---eee001---divider---',
+      '0.2.0---divider---2000-03-01---divider---eee002---divider---',
+      '0.2.1---divider---2000-03-02---divider---eee003---divider---',
+      '0.2.2---divider---2000-03-03---divider---eee004---divider---',
+      '0.3.0---divider---2000-04-01---divider---eee005---divider---',
+      '1.0.0---divider---2001-01-01---divider---eee006---divider---'
     ].join('\n')))
     const tags = await fetchTags({ ...options, latestVersion: '2.0.0' })
     expect(tags.map(t => t.title)).to.deep.equal([
@@ -207,9 +214,9 @@ describe('fetchTags', () => {
 
   it('ignores invalid semver tags', async () => {
     mock('cmd', () => Promise.resolve([
-      'v0.1.0---2000-02-01',
-      'invalid-semver-tag---2000-03-01',
-      'v0.2.0---2000-03-02'
+      'v0.1.0---divider---2000-02-01---divider---fff001---divider---',
+      'invalid-semver-tag---divider---2000-03-01---divider---fff002---divider---',
+      'v0.2.0---divider---2000-03-02---divider---fff003---divider---'
     ].join('\n')))
     const tags = await fetchTags(options)
     expect(tags.map(t => t.version)).to.deep.equal([

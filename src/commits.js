@@ -24,6 +24,12 @@ const fetchCommits = async (diff, options = {}) => {
   return parseCommits(log, options)
 }
 
+const fetchAllCommits = async (options = {}) => {
+  const format = await getLogFormat()
+  const log = await cmd(`git log --shortstat --pretty=format:${format} ${options.appendGitLog}`)
+  return parseCommits(log, options)
+}
+
 const getLogFormat = async () => {
   const gitVersion = await getGitVersion()
   const bodyFormat = gitVersion && semver.gte(gitVersion, '1.7.2') ? BODY_FORMAT : FALLBACK_BODY_FORMAT
@@ -149,5 +155,6 @@ module.exports = {
   COMMIT_SEPARATOR,
   MESSAGE_SEPARATOR,
   fetchCommits,
+  fetchAllCommits,
   parseCommit
 }
