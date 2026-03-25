@@ -25,10 +25,22 @@ const getRemote = (remoteURL, options = {}) => {
   const protocol = remote.protocol === 'http:' ? 'http:' : 'https:'
   const hostname = remote.hostname || remote.host
 
+  const IS_GITHUB = /github\.com/.test(hostname)
   const IS_BITBUCKET = /bitbucket/.test(hostname)
   const IS_GITLAB = /gitlab/.test(hostname)
   const IS_AZURE = /dev\.azure/.test(hostname)
   const IS_VISUAL_STUDIO = /visualstudio/.test(hostname)
+
+  if (IS_GITHUB) {
+    const url = `${protocol}//${hostname}/${remote.repo}`
+    return {
+      getCommitLink: id => `${url}/commit/${id}`,
+      getIssueLink: id => `${url}/issues/${id}`,
+      getMergeLink: id => `${url}/pull/${id}`,
+      getCompareLink: (from, to) => `${url}/compare/${from}...${to}`,
+      ...overrides
+    }
+  }
 
   if (IS_BITBUCKET) {
     const url = `${protocol}//${hostname}/${remote.repo}`
@@ -68,7 +80,8 @@ const getRemote = (remoteURL, options = {}) => {
     }
   }
 
-  const url = `${protocol}//${hostname}/${remote.repo}`
+  // Generic fallback for unknown platforms (GitHub Enterprise, custom GitLab instances, etc.)
+  const url = `${protocol}//${hostname}/${remote.pathname.replace(/git@.*:/, '').replace(/\.git$/, '')}`
   return {
     getCommitLink: id => `${url}/commit/${id}`,
     getIssueLink: id => `${url}/issues/${id}`,
